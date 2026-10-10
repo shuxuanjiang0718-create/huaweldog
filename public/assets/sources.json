@@ -1,0 +1,50 @@
+﻿[
+    {
+        "source":  "https://polyhaven.com/a/asphalt_02",
+        "download":  "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_02/asphalt_02_diff_1k.jpg",
+        "license":  "CC0-1.0",
+        "sha256":  "1aa5ce99f58a625c71d48cfc3e68b65ca85ccb00f39e045c0a928608a0ea25ed",
+        "bytes":  731707,
+        "file":  "asphalt-color.jpg"
+    },
+    {
+        "source":  "https://polyhaven.com/a/asphalt_02",
+        "download":  "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_02/asphalt_02_nor_gl_1k.jpg",
+        "license":  "CC0-1.0",
+        "sha256":  "42a1c381b53204e83a982db2864479a30bc127bbdeebb1006f8ee51bff099df3",
+        "bytes":  1240122,
+        "file":  "asphalt-normal.jpg"
+    },
+    {
+        "source":  "https://polyhaven.com/a/asphalt_02",
+        "download":  "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_02/asphalt_02_rough_1k.jpg",
+        "license":  "CC0-1.0",
+        "sha256":  "70ba3edc65525eb4dc366cf010ca7ae0bd34e0251ff0225c2dad627a873d0712",
+        "bytes":  544032,
+        "file":  "asphalt-roughness.jpg"
+    },
+    {
+        "source":  "https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky",
+        "download":  "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/kloofendal_48d_partly_cloudy_puresky_1k.hdr",
+        "license":  "CC0-1.0",
+        "sha256":  "fd94c84997b8a3c353b62c2125a9b44e19509956986a126e472684432a02d798",
+        "bytes":  1435119,
+        "file":  "daylight.hdr"
+    },
+    {
+        "source":  "https://polyhaven.com/a/rocky_terrain",
+        "download":  "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rocky_terrain/rocky_terrain_diff_1k.jpg",
+        "license":  "CC0-1.0",
+        "sha256":  "429315865fd89c150272592f6d93def174c6f69804a565ff08e53627a885579b",
+        "bytes":  905179,
+        "file":  "terrain-color.jpg"
+    },
+    {
+        "source":  "https://polyhaven.com/a/rocky_terrain",
+        "download":  "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rocky_terrain/rocky_terrain_nor_gl_1k.jpg",
+        "license":  "CC0-1.0",
+        "sha256":  "a6556e1220c6e6c822e68ceeb9589719e4db8c87340199657cc705fea6ecf391",
+        "bytes":  1059194,
+        "file":  "terrain-normal.jpg"
+    }
+]
