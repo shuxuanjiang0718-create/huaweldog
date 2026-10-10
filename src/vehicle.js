@@ -1,10 +1,12 @@
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { batchMeshes } from './batching.js';
 
 function rounded(parent, material, size, position, radius = 0.05) {
-  const mesh = new THREE.Mesh(new RoundedBoxGeometry(...size, 4, radius), material);
+  const segments = Math.max(...size) > .7 ? 2 : 1;
+  const mesh = new THREE.Mesh(new RoundedBoxGeometry(...size, segments, radius), material);
   mesh.position.set(...position);
-  mesh.castShadow = true;
+  mesh.castShadow = size[0] > .4 && (size[1] > .3 || size[2] > 2);
   mesh.receiveShadow = true;
   parent.add(mesh);
   return mesh;
@@ -68,10 +70,10 @@ function plateTexture() {
 
 export function createVehicle() {
   const group = new THREE.Group();
-  const paint = new THREE.MeshPhysicalMaterial({ color: 0x858c87, metalness: 0.87, roughness: 0.28, clearcoat: 1, clearcoatRoughness: 0.12, envMapIntensity: 1.3 });
+  const paint = new THREE.MeshPhysicalMaterial({ color: 0x758583, metalness: 0.83, roughness: 0.22, clearcoat: 1, clearcoatRoughness: 0.08, envMapIntensity: 1.4 });
   const graphite = new THREE.MeshPhysicalMaterial({ color: 0x151b1d, metalness: 0.72, roughness: 0.24, clearcoat: 0.85, clearcoatRoughness: 0.16 });
   const black = new THREE.MeshStandardMaterial({ color: 0x080d10, roughness: 0.64, metalness: 0.2 });
-  const glass = new THREE.MeshPhysicalMaterial({ color: 0x101d25, metalness: 0.24, roughness: 0.055, clearcoat: 1, envMapIntensity: 1.8, side: THREE.DoubleSide });
+  const glass = new THREE.MeshPhysicalMaterial({ color: 0x091820, metalness: 0.15, roughness: 0.045, clearcoat: 1, envMapIntensity: 1.65, side: THREE.DoubleSide });
   const chrome = new THREE.MeshStandardMaterial({ color: 0xb1babe, metalness: 1, roughness: 0.21 });
   const light = new THREE.MeshStandardMaterial({ color: 0xfc251a, emissive: 0xff160b, emissiveIntensity: 1.3, roughness: 0.2, metalness: 0.1 });
   const headlamp = new THREE.MeshStandardMaterial({ color: 0xdaf3f5, emissive: 0xc6edff, emissiveIntensity: 2.5, roughness: 0.1 });
@@ -147,6 +149,7 @@ export function createVehicle() {
   const rimDark = new THREE.MeshStandardMaterial({ color: 0x171e20, metalness: .8, roughness: .3 });
   const brakeDisc = new THREE.MeshStandardMaterial({ color: 0x636b6e, metalness: .88, roughness: .45 });
   const wheels = [];
+  const caliperMaterial = new THREE.MeshStandardMaterial({color:0x8d2e22,roughness:.42,metalness:.5});
   for (const side of [-1,1]) for (const z of [-1.8,1.84]) {
     const wheel = new THREE.Group(); wheel.position.set(side*1.053,.455,z); group.add(wheel); wheels.push(wheel);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(.354,.093,14,64), tire);
@@ -173,24 +176,83 @@ export function createVehicle() {
       const bolt = new THREE.Mesh(new THREE.SphereGeometry(.009,6,4), black);
       bolt.position.set(side*.203,Math.cos(a)*.046,Math.sin(a)*.046); wheel.add(bolt);
     }
-    const caliper = rounded(group, new THREE.MeshStandardMaterial({color:0x8d2e22,roughness:.42,metalness:.5}), [.09,.13,.075], [side*1.185,.55,z+.195],.022);
+    batchMeshes(wheel);
+    const caliper = rounded(group, caliperMaterial, [.09,.13,.075], [side*1.185,.55,z+.195],.022);
     caliper.rotation.x = -.35;
   }
 
   const brakeGlow = new THREE.PointLight(0xff260e,0,4,2);
   brakeGlow.position.set(0,1.0,2.9); group.add(brakeGlow);
+  const bodyMeshes = batchMeshes(group, new Set(wheels));
+  const originals = bodyMeshes.map(mesh => ({mesh, positions:mesh.geometry.attributes.position.array.slice()}));
+  const paintColor = paint.color.clone(), wheelPositions = wheels.map(w => w.position.clone());
+  const crackMaterial = new THREE.MeshBasicMaterial({map:crackTexture(),transparent:true,opacity:.85,depthWrite:false,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2});
+  const cracks = [];
+  for(const side of [-1,1]) {
+    const pane = new THREE.Mesh(new THREE.PlaneGeometry(1.5,.49),crackMaterial);
+    pane.rotation.y=side*Math.PI/2;pane.position.set(side*1.009,1.75,1.25);pane.visible=false;group.add(pane);cracks.push(pane);
+  }
+  const rearCrack = new THREE.Mesh(new THREE.PlaneGeometry(1.69,.56),crackMaterial);
+  rearCrack.position.set(0,1.7,2.414);rearCrack.rotation.x=-.125;rearCrack.visible=false;group.add(rearCrack);cracks.push(rearCrack);
+  let damage = 0;
+  const dents=[0,0];
+
+  function reset() {
+    if(damage)for(const {mesh,positions} of originals){mesh.geometry.attributes.position.array.set(positions);mesh.geometry.attributes.position.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();}
+    for(const pane of cracks)pane.visible=false;
+    wheels.forEach((w,i)=>{w.position.copy(wheelPositions[i]);w.rotation.set(0,0,0);});
+    group.position.set(0,0,0);group.rotation.set(0,0,0);damage=0;dents.fill(0);paint.color.copy(paintColor);paint.roughness=.22;
+  }
+
+  function dent(side, amount) {
+    damage=amount;
+    dents[side>0?1:0]=amount;
+    for(const {mesh,positions} of originals) {
+      const p=mesh.geometry.attributes.position;
+      for(let i=0;i<p.count;i++) {
+        const x=positions[i*3],y=positions[i*3+1],z=positions[i*3+2];
+        const front=Math.exp(-(((z+1.85)/1.45)**2));
+        let xx=x,yy=y,zz=z;
+        for(let d=0;d<2;d++){
+          const impactSide=d===0?-1:1,edge=THREE.MathUtils.smoothstep(impactSide*x,.1,1.08);
+          const crush=edge*front*dents[d]*Math.max(.3,1-Math.max(0,y-1.2)*.7);
+          xx-=impactSide*crush*.48;yy+=crush*(Math.sin(z*21+x*17)*.055-.07);zz+=crush*.30;
+        }
+        p.setXYZ(i,xx,yy,zz);
+      }
+      p.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();
+    }
+    for(const pane of cracks)pane.visible=true;
+    paint.color.copy(paintColor).multiplyScalar(.85);paint.roughness=.34;
+    wheels.forEach((w,i)=>{if(wheelPositions[i].x*side>0){w.position.x=wheelPositions[i].x-side*.10;w.rotation.y=side*.24;w.position.y=.40;}});
+  }
   return {
-    group, wheels, light, brakeGlow,
-    update(speed, braking, time, phase, dt) {
+    group, wheels, light, brakeGlow, reset, dent,
+    update(speed, braking, time, phase, dt, crash = null) {
       wheels.forEach(w => { w.rotation.x -= speed * dt / .45; });
-      const rolling = phase === 'running' || phase === 'countdown';
+      const rolling = phase === 'running' || phase === 'countdown' || phase === 'broken';
       const bounce = rolling ? Math.sin(time*31)*.007*Math.min(speed/30,1.3) : 0;
-      const pitchTarget = braking ? -.035 : rolling ? .009 : 0;
-      group.rotation.x = THREE.MathUtils.damp(group.rotation.x,pitchTarget,5,dt);
-      group.rotation.z = rolling ? Math.sin(time*2.8)*.0018 : 0;
-      group.position.y = bounce;
-      light.emissiveIntensity = braking || phase === 'stopped' ? 4 : 1.15;
+      const hitAge=crash?crash.crashTime-crash.lastImpactAt:100;
+      const kick=Math.max(0,1-hitAge/.55);
+      const pitchTarget = braking ? -.045 : damage ? -.038-kick*.055 : rolling ? .009 : 0;
+      group.rotation.x = THREE.MathUtils.damp(group.rotation.x,pitchTarget,12,dt);
+      group.rotation.z = damage ? (crash?.impactSide??1)*(.025+Math.sin(hitAge*24)*kick*.075) : rolling ? Math.sin(time*2.8)*.0018 : 0;
+      group.position.y = bounce-(damage?.035:0)+kick*.025*Math.sin(hitAge*28);
+      light.emissiveIntensity = damage ? Math.sin(time*9)>0?2.6:.2 : braking || phase === 'stopped' ? 4 : 1.15;
       brakeGlow.intensity = braking ? 7 : 0;
     },
   };
+}
+
+function crackTexture() {
+  const c=document.createElement('canvas');c.width=512;c.height=256;const ctx=c.getContext('2d');
+  let seed=691;const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)|0;return (seed>>>0)/4294967296;};
+  const ox=332,oy=127;
+  for(let i=0;i<23;i++) {
+    const angle=i/23*Math.PI*2,extent=75+rand()*250;ctx.beginPath();ctx.moveTo(ox,oy);
+    for(let j=1;j<=6;j++){const r=j/6*extent;ctx.lineTo(ox+Math.cos(angle)*r+(rand()-.5)*14,oy+Math.sin(angle)*r+(rand()-.5)*14);}
+    ctx.strokeStyle=`rgba(223,237,239,${.3+rand()*.5})`;ctx.lineWidth=.6+rand();ctx.stroke();
+  }
+  for(let r=12;r<85;r+=13){ctx.beginPath();for(let i=0;i<=23;i++){const a=i/23*Math.PI*2,rr=r+(rand()-.5)*14;const x=ox+Math.cos(a)*rr,y=oy+Math.sin(a)*rr;i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.strokeStyle='#dae7e54f';ctx.lineWidth=.65;ctx.stroke();}
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;
 }

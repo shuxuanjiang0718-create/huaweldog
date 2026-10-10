@@ -21,3 +21,5 @@ SHA-256：`570B86434C30AD9BDC30F4F6D4E8C04124A07DD4CCAA778D4717ECC211DC1D90`。
 其余复用了已安装的 game-engine、game-architect、threejs-materials、threejs-lighting、webapp-testing 与 Sites。遇到浏览器帧率问题时使用 performance-optimization 进行分辨率与后期效果对照测量；调试遵循 systematic-debugging。
 
 资料：[技能来源](https://github.com/CloudAI-X/threejs-skills)、[Three.js HDRLoader](https://threejs.org/docs/pages/HDRLoader.html)、[Three.js 迁移指南](https://github.com/mrdoob/three.js/wiki/Migration-Guide)、[OutputPass](https://threejs.org/docs/pages/OutputPass.html)。
+
+1.1 版重新评估了渲染、输入和事故反馈能力，复用 performance-optimization、game-feel、Three.js 及浏览器测试技能，无新增安装。先通过 WebGL 提交计数、CDP CPU 时间和后期/阴影对照定位瓶颈，再依据 [Three.js 几何合并说明](https://threejs.org/manual/pages/optimize-lots-of-objects.html) 合并静态零件。按当前设备的实测结果移除多层全屏后期，使用硬件 MSAA 与直接输出；保留正确的 ACES 和 sRGB 设置。事故使用固定步长状态与有限粒子池，不引入完整刚体引擎。

@@ -1,12 +1,8 @@
 import * as THREE from 'three';
 import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { FXAAShader } from 'three/addons/shaders/FXAAShader.js';
 import { createVehicle } from './vehicle.js';
+import { batchMeshes } from './batching.js';
+import { CrashEffects } from './crash-effects.js';
 
 function seeded(seed = 41) {
   return () => { seed = (Math.imul(seed,1664525)+1013904223)|0; return (seed>>>0)/4294967296; };
@@ -49,7 +45,7 @@ function contactTexture() {
 }
 
 function makeTerrain(scene) {
-  const width=3200,depth=2800,nx=240,nz=180;
+  const width=3200,depth=2800,nx=260,nz=200;
   const geometry=new THREE.PlaneGeometry(width,depth,nx,nz);
   geometry.rotateX(-Math.PI/2);geometry.translate(0,0,-1100);
   const positions=geometry.attributes.position,colors=[];
@@ -65,7 +61,7 @@ function makeTerrain(scene) {
     const height=Math.pow(a*.60+b*.25+c*.11+d*.04,1.8)*(75+far*560)*valley;
     positions.setY(i,height-.13);
     const grain=Math.sin(x*1.5+z*2.1)*.008;
-    color.setHSL(.17+c*.045,.16+Math.min(height/1100,.13),.055+height*.00019+grain);
+    color.setHSL(.19+c*.055,.20+Math.min(height/1100,.13),.09+height*.00017+grain);
     colors.push(color.r,color.g,color.b);
   }
   geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));geometry.computeVertexNormals();
@@ -116,34 +112,12 @@ function signTexture() {
   const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;
 }
 
-const FinishShader={
-  uniforms:{tDiffuse:{value:null},time:{value:0},speed:{value:0},danger:{value:0},resolution:{value:new THREE.Vector2(1,1)}},
-  vertexShader:'varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }',
-  fragmentShader:`
-    uniform sampler2D tDiffuse; uniform float time; uniform float speed; uniform float danger;
-    uniform vec2 resolution; varying vec2 vUv;
-    float random(vec2 co){return fract(sin(dot(co,vec2(12.9898,78.233))+time)*43758.5453);}
-    void main(){
-      vec2 fromCenter=vUv-vec2(.5,.56);
-      float edge=smoothstep(.16,.66,length(fromCenter));
-      float motion=clamp(speed/55.,0.,1.)*edge*.010;
-      vec3 color=texture2D(tDiffuse,vUv).rgb*.56;
-      color+=texture2D(tDiffuse,vUv-fromCenter*motion).rgb*.25;
-      color+=texture2D(tDiffuse,vUv-fromCenter*motion*2.).rgb*.19;
-      float vignette=1.-dot(fromCenter,fromCenter)*.19;
-      color*=vignette;
-      color+=(random(vUv*resolution)-.5)*.0025;
-      color+=vec3(.06,.0,.0)*danger*edge;
-      gl_FragColor=vec4(color,1.);
-    }
-  `,
-};
-
 export class HighwayScene {
   constructor(canvas) {
     this.canvas=canvas;this.scene=new THREE.Scene();this.scene.background=new THREE.Color(0xb5c6ce);
-    this.scene.fog=new THREE.FogExp2(0xb5c6ca,.00142);
-    this.renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});
+    this.scene.fog=new THREE.FogExp2(0xb5c6ca,.00122);
+    this.renderer=new THREE.WebGLRenderer({canvas,antialias:true,powerPreference:'high-performance'});
+    this.renderer.info.autoReset=false;
     this.renderer.outputColorSpace=THREE.SRGBColorSpace;
     this.renderer.toneMapping=THREE.ACESFilmicToneMapping;this.renderer.toneMappingExposure=.93;
     this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFShadowMap;
@@ -151,13 +125,15 @@ export class HighwayScene {
     this.camera.position.set(4.2,3.4,10.3);
     this.mobile=matchMedia('(pointer: coarse)').matches;
     this.mode='auto';this.dpr=Math.min(devicePixelRatio,this.mobile?1.2:1.4);
-    this.frameSamples=[];this.runtime=0;this.worldDistance=0;this.breakTime=-100;
+    this.frameSamples=[];this.runtime=0;this.worldDistance=0;this.breakTime=-100;this.hitTime=-100;
+    this.lastDistance=0;this.lastImpact=0;this.adaptTime=0;
+    this.reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
     this.lookAt=new THREE.Vector3();this.smoothedTarget=new THREE.Vector3(-3.8,1.35,-9);this.positionTarget=new THREE.Vector3();
     const hemi=new THREE.HemisphereLight(0xd8edf7,0x646754,.8);this.scene.add(hemi);
     const sun=new THREE.DirectionalLight(0xffeddb,2.4);
     sun.position.set(-34,54,-85);sun.castShadow=true;
     sun.shadow.mapSize.set(1024,1024);
-    sun.shadow.camera.left=-18;sun.shadow.camera.right=18;sun.shadow.camera.top=24;sun.shadow.camera.bottom=-24;
+    sun.shadow.camera.left=-10;sun.shadow.camera.right=10;sun.shadow.camera.top=10;sun.shadow.camera.bottom=-10;
     sun.shadow.camera.near=1;sun.shadow.camera.far=150;sun.shadow.bias=-.0004;sun.shadow.normalBias=.045;
     sun.target.position.set(0,0,0);this.scene.add(sun,sun.target);this.sun=sun;
     const fill=new THREE.DirectionalLight(0xcbdfee,.35);fill.position.set(10,8,18);this.scene.add(fill);
@@ -165,16 +141,9 @@ export class HighwayScene {
     this.makeRoad();this.makeRoadside();this.makeGantry();
     this.car=createVehicle();this.scene.add(this.car.group);
     const shadow=new THREE.Mesh(new THREE.PlaneGeometry(3.05,6.2),new THREE.MeshBasicMaterial({map:contactTexture(),transparent:true,depthWrite:false,opacity:.62}));
-    shadow.rotation.x=-Math.PI/2;shadow.position.set(0,.037,0);this.scene.add(shadow);
-
-    const renderTarget=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,depthBuffer:true});
-    this.composer=new EffectComposer(this.renderer,renderTarget);
-    this.composer.addPass(new RenderPass(this.scene,this.camera));
-    this.bloom=new UnrealBloomPass(new THREE.Vector2(1,1),.22,.45,1.55);
-    this.bloom.enabled=false;this.composer.addPass(this.bloom);
-    this.finish=new ShaderPass(FinishShader);this.composer.addPass(this.finish);
-    this.composer.addPass(new OutputPass());
-    this.fxaa=new ShaderPass(FXAAShader);this.composer.addPass(this.fxaa);
+    shadow.rotation.x=-Math.PI/2;shadow.position.set(0,.037,0);this.scene.add(shadow);this.contactShadow=shadow;
+    this.effects=new CrashEffects(this.scene);
+    this.makeDamagedRail();
     this.resize();
   }
 
@@ -201,9 +170,10 @@ export class HighwayScene {
   makeRoadside() {
     const steel=new THREE.MeshStandardMaterial({color:0xb8c3c5,metalness:.77,roughness:.37});
     const darkSteel=new THREE.MeshStandardMaterial({color:0x6d787b,metalness:.74,roughness:.44});
-    const railX=[7.25,-7.25,-8.75,-23.25];
+    const railX=[7.25,-7.25,-8.75,-23.25];this.rails={left:[],right:[]};this.railMaterial=steel;
     for(const x of railX) for(const y of [.67,.80]) {
       const rail=new THREE.Mesh(new THREE.BoxGeometry(.10,.12,1400),steel);rail.position.set(x,y,-600);rail.receiveShadow=true;this.scene.add(rail);
+      if(Math.abs(x)===7.25)this.rails[x>0?'right':'left'].push(rail);
     }
     const posts=[];
     for(let z=-1300;z<100;z+=4) for(const x of railX) posts.push({x,y:.43,z});
@@ -251,11 +221,29 @@ export class HighwayScene {
     }
     const sign=new THREE.Mesh(new THREE.BoxGeometry(6.7,1.64,.11),new THREE.MeshStandardMaterial({color:0x264941,roughness:.62}));sign.position.set(0,6.9,.05);group.add(sign);
     const face=new THREE.Mesh(new THREE.PlaneGeometry(6.62,1.59),new THREE.MeshStandardMaterial({map:signTexture(),roughness:.66}));face.position.set(0,6.9,.12);group.add(face);
-    group.position.z=-310;this.scene.add(group);this.gantry=group;
+    batchMeshes(group);group.position.z=-310;this.scene.add(group);this.gantry=group;
+  }
+
+  makeDamagedRail() {
+    this.damagedRails=[];
+    for(const side of [-1,1]) {
+      const group=new THREE.Group(),bent=[];
+      for(const y of [.67,.80]) {
+        const geometry=new THREE.BoxGeometry(.1,.12,8,1,1,24);
+        const p=geometry.attributes.position;
+        for(let i=0;i<p.count;i++){const z=p.getZ(i),bend=Math.exp(-z*z/.9);p.setX(i,p.getX(i)+side*bend*.63);p.setY(i,p.getY(i)-bend*.14);}
+        geometry.computeVertexNormals();const mesh=new THREE.Mesh(geometry,this.railMaterial);mesh.position.set(side*7.25,y,0);group.add(mesh);bent.push(mesh);
+        for(const end of [-1,1]) {
+          const straight=new THREE.Mesh(new THREE.BoxGeometry(.1,.12,1400),this.railMaterial);
+          straight.position.set(side*7.25,y,end*704);group.add(straight);
+        }
+      }
+      group.visible=false;this.scene.add(group);this.damagedRails.push({group,side,distance:0});
+    }
   }
 
   async loadAssets() {
-    const loader=new THREE.TextureLoader(),anisotropy=Math.min(12,this.renderer.capabilities.getMaxAnisotropy());
+    const loader=new THREE.TextureLoader(),anisotropy=this.renderer.capabilities.getMaxAnisotropy();
     const loads=[
       ['asphalt-color.jpg','map',true],['asphalt-normal.jpg','normalMap',false],['asphalt-roughness.jpg','roughnessMap',false],
     ].map(async([file,key,color])=>{
@@ -290,15 +278,11 @@ export class HighwayScene {
     this.portrait=w/h<.86;
     this.camera.aspect=w/h;this.camera.fov=this.portrait?57:47;this.camera.updateProjectionMatrix();
     this.renderer.setPixelRatio(this.dpr);this.renderer.setSize(w,h,false);
-    this.composer.setPixelRatio(this.dpr);this.composer.setSize(w,h);
-    this.fxaa.uniforms.resolution.value.set(1/(w*this.dpr),1/(h*this.dpr));
-    this.finish.uniforms.resolution.value.set(w*this.dpr,h*this.dpr);
   }
 
   setQuality(mode) {
     this.mode=mode;
     this.dpr=Math.min(devicePixelRatio,mode==='high'?(this.mobile?1.65:2):mode==='low'?.85:(this.mobile?1.2:1.4));
-    this.bloom.enabled=mode==='high';
     this.sun.shadow.mapSize.set(mode==='high'?2048:1024,mode==='high'?2048:1024);
     this.sun.shadow.map?.dispose();this.sun.shadow.map=null;
     this.resize();this.frameSamples=[];
@@ -306,10 +290,17 @@ export class HighwayScene {
 
   breakPedal(){this.breakTime=this.runtime;}
 
+  reset() {
+    this.car.reset();this.effects.reset();this.worldDistance=0;this.lastDistance=0;this.lastImpact=0;this.breakTime=this.hitTime=-100;
+    for(const rail of this.damagedRails)rail.group.visible=false;
+    for(const rails of Object.values(this.rails))for(const mesh of rails)mesh.visible=true;
+  }
+
   update(state,dt,paused=false) {
     this.runtime+=dt;
-    const active=(state.phase==='running'||state.phase==='countdown')&&!paused;
-    const move=active?state.speed*dt:0;this.worldDistance+=move;
+    const active=['running','countdown','broken'].includes(state.phase)&&!paused;
+    const move=state.phase==='countdown'?state.speed*dt:Math.max(0,state.distance-this.lastDistance);
+    this.lastDistance=state.distance;this.worldDistance+=move;
     for(const texture of this.roadTextures)texture.offset.y=-(this.worldDistance/3)%1;
     this.markings.position.z=this.worldDistance%12;this.rumbles.position.z=this.worldDistance%1;
     this.posts.position.z=this.worldDistance%4;this.reflectors.position.z=this.worldDistance%16;
@@ -317,25 +308,45 @@ export class HighwayScene {
     this.trees.position.z=this.treesCross.position.z=this.worldDistance%320;
     this.bollards.position.z=this.worldDistance%18;
     this.gantry.position.z=-310+this.worldDistance%700;
-    this.car.update(active?state.speed:0,state.braking&&!paused,this.runtime,state.phase,paused?0:dt);
+    this.car.update(active?state.speed:0,state.braking&&!paused,this.runtime,state.phase,paused?0:dt,state);
+    this.car.group.position.x=state.lateral;this.car.group.rotation.y=state.yaw;
+    this.sun.position.x=-34+state.lateral;this.sun.target.position.x=state.lateral;
+    this.contactShadow.position.x=state.lateral;this.contactShadow.rotation.z=state.yaw;
+    if(state.impacts>this.lastImpact){
+      this.lastImpact=state.impacts;this.hitTime=this.runtime;this.car.dent(state.impactSide,state.damage);
+      this.effects.impact(state,state.impactSide*7.18,-1.2);
+      const rail=this.damagedRails.find(r=>r.side===state.impactSide);rail.distance=this.worldDistance;rail.group.visible=true;
+      for(const mesh of this.rails[state.impactSide>0?'right':'left'])mesh.visible=false;
+    }
+    for(const rail of this.damagedRails)if(rail.group.visible)rail.group.position.z=-1.2+this.worldDistance-rail.distance;
 
     const intro=state.phase==='ready',portrait=this.portrait;
     const t=this.runtime,braking=state.braking&&!paused;
-    const shake=Math.max(0,1-(t-this.breakTime)/.42)*.095;
+    const shake=this.reducedMotion?0:Math.max(0,1-(t-this.breakTime)/.22)*.055+Math.max(0,1-(t-this.hitTime)/.6)*.23;
     const speedSway=active?Math.sin(t*19)*.002*Math.min(state.speed/30,1.5):0;
     const orbit=intro&&!portrait?Math.sin(t*.18)*.25:0;
-    this.positionTarget.set(portrait?2.8:4.0+orbit,portrait?3.25:3.4,portrait?12.5:10.9);
+    const crash=state.phase==='broken'||state.phase==='wrecked';
+    this.positionTarget.set((portrait?2.8:4.0+orbit)+state.lateral*(crash?.88:1),portrait?3.25:3.4,portrait?12.5:10.9);
     this.positionTarget.y+=braking?.055:0;
-    this.camera.position.lerp(this.positionTarget,1-Math.exp(-dt*2.5));
+    this.camera.position.lerp(this.positionTarget,1-Math.exp(-dt*(crash?5:2.5)));
     this.camera.position.x+=Math.sin(t*103)*shake;this.camera.position.y+=Math.sin(t*87)*shake+speedSway;
-    this.lookAt.set(portrait?-2.15:intro?-6.3:-3.8,portrait?1.2:1.35,-9);
+    this.lookAt.set((portrait?-2.15:intro?-6.3:-3.8)+state.lateral,portrait?1.2:1.35,-9);
     this.smoothedTarget.lerp(this.lookAt,1-Math.exp(-dt*2.7));
     this.camera.lookAt(this.smoothedTarget);
     const targetFov=(portrait?57:47)+(active?Math.min(state.speed/40,1)*2.4:0);
     this.camera.fov=THREE.MathUtils.damp(this.camera.fov,targetFov,3,dt);this.camera.updateProjectionMatrix();
-    this.finish.uniforms.time.value=t;this.finish.uniforms.speed.value=active?state.speed:0;
-    this.finish.uniforms.danger.value=state.phase==='broken'?.35:Math.max(0,(state.pressure-1250)/362)*.25;
-    this.composer.render();
+    this.effects.update(state,dt,move,this.worldDistance,this.camera);
+    this.renderer.info.reset();this.renderer.render(this.scene,this.camera);
+    this.adaptTime+=dt;
+    if(this.mode==='auto'&&dt<.12){
+      this.frameSamples.push(dt);if(this.frameSamples.length>90)this.frameSamples.shift();
+      if(this.adaptTime>3.5&&this.frameSamples.length===90){
+        const average=this.frameSamples.reduce((a,b)=>a+b,0)/90,minDpr=this.mobile?.8:Math.min(1,devicePixelRatio),maxDpr=Math.min(devicePixelRatio,this.mobile?1.2:1.4);
+        const next=average>.023?Math.max(minDpr,this.dpr-.10):average<.0175?Math.min(maxDpr,this.dpr+.05):this.dpr;
+        if(Math.abs(next-this.dpr)>.02){this.dpr=next;this.resize();}
+        this.adaptTime=0;this.frameSamples.length=0;
+      }
+    }
   }
 
   getStats(){return {drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,pixelRatio:this.dpr,quality:this.mode};}

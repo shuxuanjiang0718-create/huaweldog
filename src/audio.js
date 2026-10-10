@@ -30,14 +30,15 @@ export class DriveAudio {
   }
   update(state,paused) {
     if(!this.context)return;
-    const t=this.context.currentTime,active=this.enabled&&!paused&&['running','countdown'].includes(state.phase);
+    const t=this.context.currentTime,active=this.enabled&&!paused&&['running','countdown','broken'].includes(state.phase);
     const speed=state.speed;
     this.motor.frequency.setTargetAtTime(37+speed*1.6,t,.12);
     this.motorGain.gain.setTargetAtTime(active?.18:0,t,.12);
     this.windFilter.frequency.setTargetAtTime(350+speed*17,t,.18);
     this.windGain.gain.setTargetAtTime(active?.15+Math.min(speed/170,.3):0,t,.15);
     this.brake.frequency.setTargetAtTime(175+speed*3,t,.1);
-    this.brakeGain.gain.setTargetAtTime(active&&state.braking?.075:0,t,.06);
+    const scraping=state.phase==='broken'&&state.impacts>0&&state.crashTime-state.lastImpactAt<.65;
+    this.brakeGain.gain.setTargetAtTime(active&&(state.braking||scraping)?.075:0,t,.025);
   }
   broken() {
     if(!this.context||!this.enabled)return;
@@ -60,5 +61,15 @@ export class DriveAudio {
       const start=t+i*.09;gain.gain.setValueAtTime(0,start);gain.gain.linearRampToValueAtTime(.22,start+.025);gain.gain.exponentialRampToValueAtTime(.001,start+.65);
       osc.connect(gain);gain.connect(this.master);osc.start(start);osc.stop(start+.7);
     });
+  }
+  crash(speed) {
+    if(!this.context||!this.enabled)return;
+    const ctx=this.context,t=ctx.currentTime;
+    const noise=ctx.createBufferSource();noise.buffer=this.noiseBuffer;
+    const filter=ctx.createBiquadFilter();filter.type='lowpass';filter.frequency.setValueAtTime(2700,t);filter.frequency.exponentialRampToValueAtTime(200,t+.65);
+    const gain=ctx.createGain();gain.gain.setValueAtTime(Math.min(2.3,1.3+speed/20),t);gain.gain.exponentialRampToValueAtTime(.001,t+.9);
+    noise.connect(filter);filter.connect(gain);gain.connect(this.master);noise.start(t);noise.stop(t+1);
+    const osc=ctx.createOscillator(),body=ctx.createGain();osc.type='sine';osc.frequency.setValueAtTime(92,t);osc.frequency.exponentialRampToValueAtTime(27,t+.36);
+    body.gain.setValueAtTime(1.1,t);body.gain.exponentialRampToValueAtTime(.001,t+.55);osc.connect(body);body.connect(this.master);osc.start(t);osc.stop(t+.6);
   }
 }

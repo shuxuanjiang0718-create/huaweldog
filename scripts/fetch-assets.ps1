@@ -3,9 +3,9 @@ $assetRoot = Join-Path (Split-Path -Parent $PSScriptRoot) 'public\assets'
 New-Item -ItemType Directory -Path $assetRoot -Force | Out-Null
 $specifications = @(
     @{ Asset='asphalt_02'; Channel='Diffuse'; Extension='jpg'; Name='asphalt-color.jpg' },
-    @{ Asset='asphalt_02'; Channel='nor_gl'; Extension='jpg'; Name='asphalt-normal.jpg' },
+    @{ Asset='asphalt_02'; Channel='nor_gl'; Extension='jpg'; Name='asphalt-normal.jpg'; Resolution='2k' },
     @{ Asset='asphalt_02'; Channel='Rough'; Extension='jpg'; Name='asphalt-roughness.jpg' },
-    @{ Asset='kloofendal_48d_partly_cloudy_puresky'; Channel='hdri'; Extension='hdr'; Name='daylight.hdr' },
+    @{ Asset='kloofendal_48d_partly_cloudy_puresky'; Channel='hdri'; Extension='hdr'; Name='daylight.hdr'; Resolution='2k' },
     @{ Asset='rocky_terrain'; Channel='Diffuse'; Extension='jpg'; Name='terrain-color.jpg' },
     @{ Asset='rocky_terrain'; Channel='nor_gl'; Extension='jpg'; Name='terrain-normal.jpg' }
 )
@@ -16,10 +16,16 @@ foreach ($specification in $specifications) {
     if (-not $metadataCache.ContainsKey($assetName)) {
         $metadataCache[$assetName] = Invoke-RestMethod -Uri ('https://api.polyhaven.com/files/' + $assetName) -TimeoutSec 30
     }
-    $metadata = $metadataCache[$assetName].($specification.Channel).'1k'.($specification.Extension)
+    $assetResolution = if ($specification.Resolution) { $specification.Resolution } else { '1k' }
+    $metadata = $metadataCache[$assetName].($specification.Channel).($assetResolution).($specification.Extension)
     $assetPath = Join-Path $assetRoot $specification.Name
-    if (-not (Test-Path -LiteralPath $assetPath)) {
-        Invoke-WebRequest -Uri $metadata.url -OutFile $assetPath -TimeoutSec 80
+    $requiresDownload = -not (Test-Path -LiteralPath $assetPath)
+    if (-not $requiresDownload) { $requiresDownload = (Get-FileHash -LiteralPath $assetPath -Algorithm MD5).Hash.ToLowerInvariant() -ne $metadata.md5 }
+    if ($requiresDownload) {
+        $downloadPath = $assetPath + '.download'
+        Invoke-WebRequest -Uri $metadata.url -OutFile $downloadPath -TimeoutSec 80
+        if ((Get-FileHash -LiteralPath $downloadPath -Algorithm MD5).Hash.ToLowerInvariant() -ne $metadata.md5) { throw ('Download checksum mismatch: ' + $specification.Name) }
+        Move-Item -LiteralPath $downloadPath -Destination $assetPath -Force
     }
     $checksum = (Get-FileHash -LiteralPath $assetPath -Algorithm MD5).Hash.ToLowerInvariant()
     if ($checksum -ne $metadata.md5) { throw ('Checksum mismatch: ' + $specification.Name) }

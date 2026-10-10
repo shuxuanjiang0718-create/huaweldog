@@ -9,10 +9,10 @@
     },
     {
         "source":  "https://polyhaven.com/a/asphalt_02",
-        "download":  "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_02/asphalt_02_nor_gl_1k.jpg",
+        "download":  "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/asphalt_02/asphalt_02_nor_gl_2k.jpg",
         "license":  "CC0-1.0",
-        "sha256":  "42a1c381b53204e83a982db2864479a30bc127bbdeebb1006f8ee51bff099df3",
-        "bytes":  1240122,
+        "sha256":  "ffe49db71a0fd34c1e259625df66a302a237597d6ef655307987ec4e45bc6f21",
+        "bytes":  4943950,
         "file":  "asphalt-normal.jpg"
     },
     {
@@ -25,10 +25,10 @@
     },
     {
         "source":  "https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky",
-        "download":  "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/kloofendal_48d_partly_cloudy_puresky_1k.hdr",
+        "download":  "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/kloofendal_48d_partly_cloudy_puresky_2k.hdr",
         "license":  "CC0-1.0",
-        "sha256":  "fd94c84997b8a3c353b62c2125a9b44e19509956986a126e472684432a02d798",
-        "bytes":  1435119,
+        "sha256":  "5244534e9cf5b606f2ff513aa00ddb161b0a4826ffd88a0d3bd03ac29247d198",
+        "bytes":  5451493,
         "file":  "daylight.hdr"
     },
     {

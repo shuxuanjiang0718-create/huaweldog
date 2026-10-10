@@ -20,3 +20,48 @@
 @media (max-height:500px) and (orientation:landscape){.topbar{top:14px;left:24px;right:24px}.wordmark>span{font-size:25px}.wordmark small{font-size:9px}.tools .tool{width:30px;height:30px}.telemetry{top:68px;left:25px;gap:30px}.metric strong{font-size:23px}.metric>span{font-size:9px}.intro{top:30%;left:10%}.eyebrow{font-size:7px}h1{font-size:38px;margin:10px 0;line-height:1.1}.intro-copy{font-size:10px}.rule{margin:12px 0}.rule p{font-size:8px}.rule-number{font-size:21px}.intro-input{display:none}.intro .start-button{padding:11px 16px;width:180px;font-size:11px}.speedometer{width:130px;height:116px;left:20px;bottom:31px}.speed-arc{height:100px}.speed-readout{top:32px}.speed-readout>span{font-size:35px}.speed-readout>small{font-size:8px}.speed-caption{font-size:7px}.brake-controls{right:26px;bottom:34px;gap:13px}.brake-button{width:104px;height:121px}.pedal-assembly{left:29px;top:15px;transform:scale(.8)}.is-held .pedal-assembly{transform:scale(.8) translateY(7px)}.brake-label{font-size:11px;bottom:27px}.brake-subtitle{font-size:6px}.pressure-meter{height:112px}.pressure-title{font-size:9px;margin-bottom:16px}.pressure-panel{width:66px}.meter-rail{left:23px;width:18px}.critical-line{left:17px;right:20px}.critical-line>span{font-size:9px}.meter-zero{left:47px}.force-readout>strong{font-size:19px}.footnote{left:25px;bottom:12px;font-size:6px}.countdown>span{font-size:86px}.countdown>small{font-size:9px;margin-top:15px}.drive-hint{top:23%;font-size:9px}.result-card{width:430px;padding:19px 28px 17px}.result-icon{float:right;margin-top:-14px}.result-card h2{font-size:25px;margin:16px 0 8px}.result-card>p{font-size:10px}.result-stats{margin:17px 0;padding:12px 0}.result-stats strong{font-size:18px}.result-stats>div>span{font-size:8px;margin-bottom:5px}.result-card .start-button{padding:11px 14px;font-size:11px}.result-tip{margin-top:11px;font-size:8px}}
 @media (prefers-reduced-motion:reduce){.result-card,.countdown>span{animation:none}.start-button{transition:background .2s}}
 @media (max-height:700px) and (max-width:700px){#game[data-phase="ready"] .brake-controls{opacity:0;pointer-events:none}}
+
+/* Read the limit at a glance; input feedback has no decorative delay. */
+.pressure-title{margin-bottom:42px}
+.critical-line{left:13px;right:13px;height:3px;background:#ff654c;box-shadow:0 0 9px #ff654c80}
+.critical-line>span{right:50%;bottom:11px;transform:translateX(50%);font-size:19px;font-weight:650;letter-spacing:.3px;color:#fff3e7;background:#5c211bea;border:1px solid #ff8168;padding:4px 8px;border-radius:3px;box-shadow:0 3px 16px #0004;text-shadow:0 1px 2px #0006}
+.critical-line b{font-size:11px;font-weight:500;opacity:1;color:#ffb29e}
+.critical-line:after{content:"断裂临界";position:absolute;left:50%;top:6px;transform:translateX(-50%);font-size:8px;letter-spacing:1px;white-space:nowrap;color:#ffd4c7}
+.pressure-panel.is-critical .critical-line>span{background:#ae3428;border-color:#ffd8bd;box-shadow:0 0 19px #ff58346e}
+.brake-button{transition:background 0s,border-color 0s,box-shadow 0s;backdrop-filter:none;background:rgba(19,30,36,.84)}
+.pedal-assembly,.pedal-pad{transition:transform 0s,box-shadow 0s}
+.pedal-mount{position:absolute;left:10px;top:-13px;width:28px;height:16px;border:1px solid #9aa6a2;border-radius:3px;background:linear-gradient(120deg,#26312f,#687570 50%,#29332f);box-shadow:2px 3px 5px #0009}
+.pedal-mount:before,.pedal-mount:after{content:"";position:absolute;top:4px;left:3px;width:5px;height:5px;border:1px solid #101b17;border-radius:50%;background:#bcc7b8;box-shadow:inset 1px -1px #333c36}
+.pedal-mount:after{left:auto;right:3px}
+.pedal-pad{top:7px;background:linear-gradient(110deg,#e4e9e3 2%,#c4ccc7 25%,#909e98 60%,#63716b);border-color:#e4eee4;box-shadow:3px 4px 0 #46544d,4px 8px 11px #0009}
+.pedal-stem{top:-5px;height:56px;width:9px;background:linear-gradient(90deg,#37453e,#cdd5ca 35%,#8a9b8f 65%,#35443c);transform:rotate(-10deg)}
+.pedal-pad:after{content:"";position:absolute;left:18px;top:-7px;width:9px;height:15px;background:linear-gradient(90deg,#536455,#cbd4c8,#697c6c);z-index:-1}
+.pedal-chip{display:none;position:absolute;left:22px;top:4px;width:6px;height:9px;background:#d2d9d0;clip-path:polygon(0 0,100% 17%,60% 100%,0 80%)}
+.is-broken.brake-button{opacity:.95}
+.is-broken .pedal-stem{height:13px;clip-path:polygon(0 0,100% 0,100% 67%,68% 82%,46% 66%,28% 100%,0 69%)}
+.is-broken .pedal-pad{animation:metal-fall 1.05s linear forwards;transform-origin:50% 0;border-color:#b5bfb4}
+.is-broken .pedal-pad:after{top:-8px;height:14px;clip-path:polygon(0 20%,25% 0,45% 28%,73% 11%,100% 34%,100% 100%,0 100%)}
+.is-broken .pedal-fragment{display:block;width:5px;height:14px;left:18px;top:7px;animation:metal-shard .8s linear forwards}
+.is-broken .pedal-chip{display:block;animation:metal-chip .72s linear forwards}
+.crash-status{position:absolute;left:50%;top:23%;transform:translateX(-50%);z-index:5;padding:12px 18px;color:#fff4e9;background:#5b251ede;border:1px solid #ff8c7190;font-size:13px;letter-spacing:2px;white-space:nowrap;box-shadow:0 4px 30px #0004}
+#game[data-phase="broken"] .speed-readout>span,#game[data-phase="wrecked"] .speed-readout>span{color:#ffc4ad}
+#game[data-phase="wrecked"] .arc-value{stroke:var(--red)}
+@keyframes metal-fall{
+  0%{transform:translate(0,7px) rotate(-3deg) rotateX(25deg)}
+  9%{transform:translate(2px,8px) rotate(9deg) rotateX(7deg)}
+  24%{transform:translate(12px,11px) rotate(27deg)}
+  49%{transform:translate(19px,29px) rotate(64deg)}
+  62%{transform:translate(17px,52px) rotate(99deg)}
+  72%{transform:translate(17px,39px) rotate(88deg)}
+  83%{transform:translate(17px,51px) rotate(97deg)}
+  91%{transform:translate(17px,47px) rotate(93deg)}
+  100%{transform:translate(17px,51px) rotate(95deg);box-shadow:2px 2px 0 #28332e,3px 5px 7px #000a;filter:brightness(.85)}
+}
+@keyframes metal-shard{0%{transform:translate(0,0) rotate(0)}35%{transform:translate(-18px,10px) rotate(-83deg)}75%{transform:translate(-32px,74px) rotate(-220deg)}100%{transform:translate(-34px,71px) rotate(-250deg)}}
+@keyframes metal-chip{0%{transform:translate(0,0)}30%{transform:translate(24px,-13px) rotate(140deg)}75%{transform:translate(39px,70px) rotate(430deg)}100%{transform:translate(39px,68px) rotate(410deg)}}
+@media(max-width:700px){
+  .critical-line{left:8px;right:8px}.critical-line>span{font-size:16px;padding:3px 5px;bottom:10px}.critical-line b{font-size:10px}.critical-line:after{font-size:7px;letter-spacing:.5px}
+  .pressure-title{margin-bottom:37px}.crash-status{font-size:10px;letter-spacing:1px;padding:10px 12px;top:23%}
+}
+@media(max-height:500px) and (orientation:landscape){.crash-status{top:25%;font-size:10px;padding:8px 12px}.critical-line>span{font-size:16px}.pressure-title{margin-bottom:37px}}
+@media(prefers-reduced-motion:reduce){.is-broken .pedal-pad{animation:none;transform:translate(17px,51px) rotate(95deg)}.is-broken .pedal-fragment,.is-broken .pedal-chip{animation:none}#impact.is-active{animation:none}}
