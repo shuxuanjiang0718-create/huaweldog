@@ -14,7 +14,7 @@ const manifest=JSON.parse(readFileSync(join(source,'.openai','hosting.json'),'ut
 if(manifest.project_id!=='appgprj_6aca0e59eaf48191b4272e988aa31c08'||manifest.static?.directory!=='dist')throw new Error('Unexpected Sites identity or static layout.');
 if(!statSync(join(source,'dist','index.html')).isFile())throw new Error('Build the game before packaging.');
 mkdirSync(artifactRoot,{recursive:true});
-const stage=mkdtempSync(join(artifactRoot,'site-v11-'));
+const stage=mkdtempSync(join(artifactRoot,'site-v12-'));
 cpSync(join(source,'dist'),join(stage,'dist'),{recursive:true});
 mkdirSync(join(stage,'dist','.openai'),{recursive:true});
 cpSync(join(source,'.openai','hosting.json'),join(stage,'dist','.openai','hosting.json'));

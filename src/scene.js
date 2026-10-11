@@ -3,6 +3,8 @@ import { HDRLoader } from 'three/addons/loaders/HDRLoader.js';
 import { createVehicle } from './vehicle.js';
 import { batchMeshes } from './batching.js';
 import { CrashEffects } from './crash-effects.js';
+import { TrackWarp, StreamingGround, terrainHeight, roadWearTexture, trackSlope } from './track.js';
+import { Atmosphere } from './atmosphere.js';
 
 function seeded(seed = 41) {
   return () => { seed = (Math.imul(seed,1664525)+1013904223)|0; return (seed>>>0)/4294967296; };
@@ -124,11 +126,11 @@ export class HighwayScene {
     this.camera=new THREE.PerspectiveCamera(47,1,.2,3800);
     this.camera.position.set(4.2,3.4,10.3);
     this.mobile=matchMedia('(pointer: coarse)').matches;
-    this.mode='auto';this.dpr=Math.min(devicePixelRatio,this.mobile?1.2:1.4);
+    this.mode='auto';this.dpr=Math.min(devicePixelRatio,1.5);
     this.frameSamples=[];this.runtime=0;this.worldDistance=0;this.breakTime=-100;this.hitTime=-100;
     this.lastDistance=0;this.lastImpact=0;this.adaptTime=0;
     this.reducedMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
-    this.lookAt=new THREE.Vector3();this.smoothedTarget=new THREE.Vector3(-3.8,1.35,-9);this.positionTarget=new THREE.Vector3();
+    this.lookAt=new THREE.Vector3();this.smoothedTarget=new THREE.Vector3(-3.8,1.35,-9);this.positionTarget=new THREE.Vector3();this.wreckPosition=new THREE.Vector3();
     const hemi=new THREE.HemisphereLight(0xd8edf7,0x646754,.8);this.scene.add(hemi);
     const sun=new THREE.DirectionalLight(0xffeddb,2.4);
     sun.position.set(-34,54,-85);sun.castShadow=true;
@@ -137,34 +139,38 @@ export class HighwayScene {
     sun.shadow.camera.near=1;sun.shadow.camera.far=150;sun.shadow.bias=-.0004;sun.shadow.normalBias=.045;
     sun.target.position.set(0,0,0);this.scene.add(sun,sun.target);this.sun=sun;
     const fill=new THREE.DirectionalLight(0xcbdfee,.35);fill.position.set(10,8,18);this.scene.add(fill);
-    this.terrain=makeTerrain(this.scene);
+    this.atmosphere=new Atmosphere(this.scene,sun,hemi,fill);
+    this.world=new THREE.Group();this.scene.add(this.world);this.warp=new TrackWarp();
+    this.terrain={material:new THREE.MeshStandardMaterial({vertexColors:true,map:groundTexture(),roughness:.95,metalness:0})};
+    this.ground=new StreamingGround(this.world,this.terrain.material);
     this.makeRoad();this.makeRoadside();this.makeGantry();
     this.car=createVehicle();this.scene.add(this.car.group);
     const shadow=new THREE.Mesh(new THREE.PlaneGeometry(3.05,6.2),new THREE.MeshBasicMaterial({map:contactTexture(),transparent:true,depthWrite:false,opacity:.62}));
     shadow.rotation.x=-Math.PI/2;shadow.position.set(0,.037,0);this.scene.add(shadow);this.contactShadow=shadow;
     this.effects=new CrashEffects(this.scene);
     this.makeDamagedRail();
+    this.warp.apply(this.world,this.roadMaterial,roadWearTexture());
     this.resize();
   }
 
   makeRoad() {
     const material=new THREE.MeshStandardMaterial({color:0x333a40,map:asphaltFallback(),roughness:.74,metalness:.045});
-    const road=new THREE.Mesh(new THREE.PlaneGeometry(14.2,1400),material);road.rotation.x=-Math.PI/2;road.position.set(0,.021,-600);road.receiveShadow=true;this.scene.add(road);
-    const opposite=new THREE.Mesh(new THREE.PlaneGeometry(14.2,1400),material);opposite.rotation.x=-Math.PI/2;opposite.position.set(-16,.021,-600);opposite.receiveShadow=true;this.scene.add(opposite);
+    const road=new THREE.Mesh(new THREE.PlaneGeometry(14.2,1400,1,200),material);road.rotation.x=-Math.PI/2;road.position.set(0,.021,-600);road.receiveShadow=true;this.world.add(road);
+    const opposite=new THREE.Mesh(new THREE.PlaneGeometry(14.2,1400,1,200),material);opposite.rotation.x=-Math.PI/2;opposite.position.set(-16,.021,-600);opposite.receiveShadow=true;this.world.add(opposite);
     this.roadMaterial=material;this.roadTextures=[material.map];
     const markings=new THREE.MeshStandardMaterial({color:0xe9e6d5,roughness:.86,metalness:0});
     const edgePositions=[];
     for(const x of [-6.1,6.1,-22.1,-9.9]) edgePositions.push({x,y:.031,z:-600});
-    instance(new THREE.BoxGeometry(.125,.006,1400),markings,edgePositions,this.scene);
+    instance(new THREE.BoxGeometry(.125,.006,1400,1,1,200),markings,edgePositions,this.world);
     const dashPositions=[];
     for(let z=-1300;z<100;z+=12) for(const x of [-1.85,1.85,-17.85,-14.15]) dashPositions.push({x,y:.034,z});
-    this.markings=instance(new THREE.BoxGeometry(.125,.007,4),markings,dashPositions,this.scene);
+    this.markings=instance(new THREE.BoxGeometry(.125,.007,4),markings,dashPositions,this.world);
     const stripPositions=[];
     for(let z=-1300;z<100;z+=1) for(const x of [6.62,-6.62,-9.4,-22.6]) stripPositions.push({x,y:.026,z});
     const rumble=new THREE.MeshStandardMaterial({color:0x4d565b,roughness:.95});
-    this.rumbles=instance(new THREE.BoxGeometry(.34,.016,.10),rumble,stripPositions,this.scene);
-    const median=new THREE.Mesh(new THREE.BoxGeometry(1.75,.35,1400),new THREE.MeshStandardMaterial({color:0x9c9d91,roughness:.98}));median.position.set(-8,.1,-600);median.receiveShadow=true;this.scene.add(median);
-    const track=new THREE.Mesh(new THREE.PlaneGeometry(2.5,1400),new THREE.MeshStandardMaterial({color:0x393e39,roughness:.96}));track.rotation.x=-Math.PI/2;track.position.set(-8,.28,-600);this.scene.add(track);
+    this.rumbles=instance(new THREE.BoxGeometry(.34,.016,.10),rumble,stripPositions,this.world);
+    const median=new THREE.Mesh(new THREE.BoxGeometry(1.75,.35,1400,1,1,200),new THREE.MeshStandardMaterial({color:0x9c9d91,roughness:.98}));median.position.set(-8,.1,-600);median.receiveShadow=true;this.world.add(median);
+    const track=new THREE.Mesh(new THREE.PlaneGeometry(2.5,1400,1,200),new THREE.MeshStandardMaterial({color:0x393e39,roughness:.96}));track.rotation.x=-Math.PI/2;track.position.set(-8,.28,-600);this.world.add(track);
   }
 
   makeRoadside() {
@@ -172,16 +178,16 @@ export class HighwayScene {
     const darkSteel=new THREE.MeshStandardMaterial({color:0x6d787b,metalness:.74,roughness:.44});
     const railX=[7.25,-7.25,-8.75,-23.25];this.rails={left:[],right:[]};this.railMaterial=steel;
     for(const x of railX) for(const y of [.67,.80]) {
-      const rail=new THREE.Mesh(new THREE.BoxGeometry(.10,.12,1400),steel);rail.position.set(x,y,-600);rail.receiveShadow=true;this.scene.add(rail);
+      const rail=new THREE.Mesh(new THREE.BoxGeometry(.10,.12,1400,1,1,200),steel);rail.position.set(x,y,-600);rail.receiveShadow=true;this.world.add(rail);
       if(Math.abs(x)===7.25)this.rails[x>0?'right':'left'].push(rail);
     }
     const posts=[];
     for(let z=-1300;z<100;z+=4) for(const x of railX) posts.push({x,y:.43,z});
-    this.posts=instance(new THREE.BoxGeometry(.10,.82,.10),darkSteel,posts,this.scene);
+    this.posts=instance(new THREE.BoxGeometry(.10,.82,.10),darkSteel,posts,this.world);
     const reflector=new THREE.MeshBasicMaterial({color:0xe5e9d6});
     const refPositions=[];
     for(let z=-1300;z<100;z+=16) for(const x of [7.20,-7.20]) refPositions.push({x,y:.86,z});
-    this.reflectors=instance(new THREE.BoxGeometry(.11,.10,.06),reflector,refPositions,this.scene);
+    this.reflectors=instance(new THREE.BoxGeometry(.11,.10,.06),reflector,refPositions,this.world);
     const polePositions=[],armPositions=[],headPositions=[],lightPositions=[];
     for(let z=-1240;z<100;z+=42) for(const side of [-1,1]) {
       const x=side*8.9;
@@ -190,23 +196,24 @@ export class HighwayScene {
       headPositions.push({x:x-side*2.2,y:7.83,z});
       lightPositions.push({x:x-side*2.2,y:7.76,z});
     }
-    this.poles=instance(new THREE.CylinderGeometry(.055,.105,8,8),darkSteel,polePositions,this.scene);
-    this.arms=instance(new THREE.BoxGeometry(2.5,.09,.11),darkSteel,armPositions,this.scene);
-    this.heads=instance(new THREE.BoxGeometry(.62,.11,.26),darkSteel,headPositions,this.scene);
-    this.lamps=instance(new THREE.BoxGeometry(.51,.012,.19),new THREE.MeshStandardMaterial({color:0xeaf7ed,emissive:0xe4f3cf,emissiveIntensity:1.1}),lightPositions,this.scene);
+    this.poles=instance(new THREE.CylinderGeometry(.055,.105,8,8),darkSteel,polePositions,this.world);
+    this.arms=instance(new THREE.BoxGeometry(2.5,.09,.11),darkSteel,armPositions,this.world);
+    this.heads=instance(new THREE.BoxGeometry(.62,.11,.26),darkSteel,headPositions,this.world);
+    this.lamps=instance(new THREE.BoxGeometry(.51,.012,.19),new THREE.MeshStandardMaterial({color:0xeaf7ed,emissive:0xe4f3cf,emissiveIntensity:1.1}),lightPositions,this.world);
 
     const random=seeded(481),trees=[];
     for(let i=0;i<400;i++) {
       const side=i%2?1:-1,x=side*(32+random()*115)-(side<0?25:0),z=80-random()*1170,size=3+random()*8;
-      trees.push({x,y:size*.5-.1,z,sx:size*.50,sy:size,ry:random()*Math.PI});
+      trees.push({x,y:size*.5+terrainHeight(x,-z),z,sx:size*.50,sy:size,ry:random()*Math.PI,s:-z});
     }
     const treesMaterial=new THREE.MeshStandardMaterial({map:treeTexture(),alphaTest:.42,side:THREE.DoubleSide,roughness:1});
-    this.trees=instance(new THREE.PlaneGeometry(1,1),treesMaterial,trees,this.scene);
+    this.treeSlots=trees;this.treeDummy=new THREE.Object3D();
+    this.trees=instance(new THREE.PlaneGeometry(1,1),treesMaterial,trees,this.world);
     const other=trees.map(p=>({...p,ry:p.ry+Math.PI/2}));
-    this.treesCross=instance(new THREE.PlaneGeometry(1,1),treesMaterial,other,this.scene);
+    this.treesCross=instance(new THREE.PlaneGeometry(1,1),treesMaterial,other,this.world);
     const bollardPositions=[];
     for(let z=-1200;z<100;z+=18) for(const x of [-6.85,6.85]) bollardPositions.push({x,y:.3,z});
-    this.bollards=instance(new THREE.BoxGeometry(.10,.57,.08),new THREE.MeshStandardMaterial({color:0xd7dacb,roughness:.6}),bollardPositions,this.scene);
+    this.bollards=instance(new THREE.BoxGeometry(.10,.57,.08),new THREE.MeshStandardMaterial({color:0xd7dacb,roughness:.6}),bollardPositions,this.world);
   }
 
   makeGantry() {
@@ -221,7 +228,7 @@ export class HighwayScene {
     }
     const sign=new THREE.Mesh(new THREE.BoxGeometry(6.7,1.64,.11),new THREE.MeshStandardMaterial({color:0x264941,roughness:.62}));sign.position.set(0,6.9,.05);group.add(sign);
     const face=new THREE.Mesh(new THREE.PlaneGeometry(6.62,1.59),new THREE.MeshStandardMaterial({map:signTexture(),roughness:.66}));face.position.set(0,6.9,.12);group.add(face);
-    batchMeshes(group);group.position.z=-310;this.scene.add(group);this.gantry=group;
+    batchMeshes(group);group.position.z=-310;this.world.add(group);this.gantry=group;this.gantryDistance=310;
   }
 
   makeDamagedRail() {
@@ -234,11 +241,11 @@ export class HighwayScene {
         for(let i=0;i<p.count;i++){const z=p.getZ(i),bend=Math.exp(-z*z/.9);p.setX(i,p.getX(i)+side*bend*.63);p.setY(i,p.getY(i)-bend*.14);}
         geometry.computeVertexNormals();const mesh=new THREE.Mesh(geometry,this.railMaterial);mesh.position.set(side*7.25,y,0);group.add(mesh);bent.push(mesh);
         for(const end of [-1,1]) {
-          const straight=new THREE.Mesh(new THREE.BoxGeometry(.1,.12,1400),this.railMaterial);
+          const straight=new THREE.Mesh(new THREE.BoxGeometry(.1,.12,1400,1,1,200),this.railMaterial);
           straight.position.set(side*7.25,y,end*704);group.add(straight);
         }
       }
-      group.visible=false;this.scene.add(group);this.damagedRails.push({group,side,distance:0});
+      group.visible=false;this.world.add(group);this.damagedRails.push({group,side,distance:0});
     }
   }
 
@@ -257,16 +264,14 @@ export class HighwayScene {
     const environment=(async()=>{
       const hdr=await new HDRLoader().loadAsync('/assets/daylight.hdr');
       hdr.mapping=THREE.EquirectangularReflectionMapping;
-      const pmrem=new THREE.PMREMGenerator(this.renderer);
-      this.environmentTarget=pmrem.fromEquirectangular(hdr);this.scene.environment=this.environmentTarget.texture;
-      this.scene.environmentIntensity=.65;this.scene.background=hdr;this.scene.backgroundIntensity=.75;
-      this.scene.backgroundRotation.y=1.8;this.scene.environmentRotation.y=1.8;pmrem.dispose();
+      this.atmosphere.setDaylight(hdr,this.renderer);this.scene.background=null;
+      this.scene.environmentRotation.y=1.8;
     })();
     const ground=(async()=>{
       const [color,normal]=await Promise.all([loader.loadAsync('/assets/terrain-color.jpg'),loader.loadAsync('/assets/terrain-normal.jpg')]);
       color.colorSpace=THREE.SRGBColorSpace;
-      for(const t of [color,normal]){t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(320,280);t.anisotropy=anisotropy;}
-      const m=this.terrain.material;m.map.dispose();m.map=color;m.bumpMap=null;m.normalMap=normal;m.normalScale=new THREE.Vector2(.6,.6);m.needsUpdate=true;
+      for(const t of [color,normal]){t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=anisotropy;}
+      const m=this.terrain.material;m.map.dispose();m.map=color;m.normalMap=normal;m.normalScale=new THREE.Vector2(.5,.5);m.needsUpdate=true;
     })();
     const results=await Promise.allSettled([...loads,environment,ground]);
     this.roadMaterial.normalScale=new THREE.Vector2(.28,.28);
@@ -280,18 +285,15 @@ export class HighwayScene {
     this.renderer.setPixelRatio(this.dpr);this.renderer.setSize(w,h,false);
   }
 
-  setQuality(mode) {
-    this.mode=mode;
-    this.dpr=Math.min(devicePixelRatio,mode==='high'?(this.mobile?1.65:2):mode==='low'?.85:(this.mobile?1.2:1.4));
-    this.sun.shadow.mapSize.set(mode==='high'?2048:1024,mode==='high'?2048:1024);
-    this.sun.shadow.map?.dispose();this.sun.shadow.map=null;
-    this.resize();this.frameSamples=[];
-  }
-
   breakPedal(){this.breakTime=this.runtime;}
+
+  setTime(mode){this.atmosphere.setTime(mode);}
 
   reset() {
     this.car.reset();this.effects.reset();this.worldDistance=0;this.lastDistance=0;this.lastImpact=0;this.breakTime=this.hitTime=-100;
+    this.ground.reset();this.gantryDistance=310;
+    for(const tree of this.treeSlots)tree.s=-tree.z;
+    this.updateTrees(true);
     for(const rail of this.damagedRails)rail.group.visible=false;
     for(const rails of Object.values(this.rails))for(const mesh of rails)mesh.visible=true;
   }
@@ -301,16 +303,20 @@ export class HighwayScene {
     const active=['running','countdown','broken'].includes(state.phase)&&!paused;
     const move=state.phase==='countdown'?state.speed*dt:Math.max(0,state.distance-this.lastDistance);
     this.lastDistance=state.distance;this.worldDistance+=move;
-    for(const texture of this.roadTextures)texture.offset.y=-(this.worldDistance/3)%1;
+    this.warp.distance.value=this.worldDistance;
+    this.ground.update(this.worldDistance);
+    for(const texture of this.roadTextures)texture.offset.y=(this.worldDistance/3)%1;
     this.markings.position.z=this.worldDistance%12;this.rumbles.position.z=this.worldDistance%1;
     this.posts.position.z=this.worldDistance%4;this.reflectors.position.z=this.worldDistance%16;
     for(const mesh of [this.poles,this.arms,this.heads,this.lamps])mesh.position.z=this.worldDistance%42;
-    this.trees.position.z=this.treesCross.position.z=this.worldDistance%320;
+    this.updateTrees();
     this.bollards.position.z=this.worldDistance%18;
-    this.gantry.position.z=-310+this.worldDistance%700;
+    if(this.worldDistance-this.gantryDistance>95)this.gantryDistance+=1100;
+    this.gantry.position.z=this.worldDistance-this.gantryDistance;
     this.car.update(active?state.speed:0,state.braking&&!paused,this.runtime,state.phase,paused?0:dt,state);
     this.car.group.position.x=state.lateral;this.car.group.rotation.y=state.yaw;
-    this.sun.position.x=-34+state.lateral;this.sun.target.position.x=state.lateral;
+    this.atmosphere.update(dt,this.renderer,state.lateral,Math.atan(trackSlope(this.worldDistance))-Math.atan(trackSlope(0)));
+    this.scene.environmentRotation.y=1.8+Math.atan(trackSlope(this.worldDistance));
     this.contactShadow.position.x=state.lateral;this.contactShadow.rotation.z=state.yaw;
     if(state.impacts>this.lastImpact){
       this.lastImpact=state.impacts;this.hitTime=this.runtime;this.car.dent(state.impactSide,state.damage);
@@ -326,12 +332,27 @@ export class HighwayScene {
     const speedSway=active?Math.sin(t*19)*.002*Math.min(state.speed/30,1.5):0;
     const orbit=intro&&!portrait?Math.sin(t*.18)*.25:0;
     const crash=state.phase==='broken'||state.phase==='wrecked';
-    this.positionTarget.set((portrait?2.8:4.0+orbit)+state.lateral*(crash?.88:1),portrait?3.25:3.4,portrait?12.5:10.9);
+    const wreckView=state.phase==='wrecked'?Math.min(1,(state.crashTime-state.lastImpactAt)/1.2):0;
+    this.positionTarget.set((portrait?2.8:4.0+orbit)+state.lateral*(crash?.88:1)+wreckView*3,portrait?3.25:3.4,THREE.MathUtils.lerp(portrait?12.5:10.9,7.4,wreckView));
+    if(wreckView>0){
+      const c=Math.cos(state.yaw),s=Math.sin(state.yaw);
+      this.wreckPosition.set(state.lateral+8.2*c-4.8*s,portrait?3.7:3.3,-8.2*s-4.8*c);
+      this.positionTarget.lerp(this.wreckPosition,wreckView);
+    }
     this.positionTarget.y+=braking?.055:0;
-    this.camera.position.lerp(this.positionTarget,1-Math.exp(-dt*(crash?5:2.5)));
+    if(wreckView>0){
+      // Orbit at a safe radius; a straight interpolation can pass through the wreck.
+      const dx=this.camera.position.x-state.lateral,dz=this.camera.position.z;
+      const angle=Math.atan2(dx,dz),goal=Math.atan2(this.positionTarget.x-state.lateral,this.positionTarget.z);
+      const turn=Math.atan2(Math.sin(goal-angle),Math.cos(goal-angle));
+      const next=angle+turn*(1-Math.exp(-dt*3.4));
+      const radius=THREE.MathUtils.damp(Math.max(8.8,Math.hypot(dx,dz)),9.8,4,dt);
+      this.camera.position.set(state.lateral+Math.sin(next)*radius,THREE.MathUtils.damp(this.camera.position.y,this.positionTarget.y,4,dt),Math.cos(next)*radius);
+    }else this.camera.position.lerp(this.positionTarget,1-Math.exp(-dt*(crash?5:2.5)));
     this.camera.position.x+=Math.sin(t*103)*shake;this.camera.position.y+=Math.sin(t*87)*shake+speedSway;
     this.lookAt.set((portrait?-2.15:intro?-6.3:-3.8)+state.lateral,portrait?1.2:1.35,-9);
-    this.smoothedTarget.lerp(this.lookAt,1-Math.exp(-dt*2.7));
+    if(wreckView>0)this.lookAt.lerp(this.wreckPosition.set(state.lateral,1.0,-.35),wreckView);
+    this.smoothedTarget.lerp(this.lookAt,1-Math.exp(-dt*(wreckView>0?8:2.7)));
     this.camera.lookAt(this.smoothedTarget);
     const targetFov=(portrait?57:47)+(active?Math.min(state.speed/40,1)*2.4:0);
     this.camera.fov=THREE.MathUtils.damp(this.camera.fov,targetFov,3,dt);this.camera.updateProjectionMatrix();
@@ -341,12 +362,26 @@ export class HighwayScene {
     if(this.mode==='auto'&&dt<.12){
       this.frameSamples.push(dt);if(this.frameSamples.length>90)this.frameSamples.shift();
       if(this.adaptTime>3.5&&this.frameSamples.length===90){
-        const average=this.frameSamples.reduce((a,b)=>a+b,0)/90,minDpr=this.mobile?.8:Math.min(1,devicePixelRatio),maxDpr=Math.min(devicePixelRatio,this.mobile?1.2:1.4);
+        const average=this.frameSamples.reduce((a,b)=>a+b,0)/90,minDpr=this.mobile?.8:Math.min(.85,devicePixelRatio),maxDpr=devicePixelRatio;
         const next=average>.023?Math.max(minDpr,this.dpr-.10):average<.0175?Math.min(maxDpr,this.dpr+.05):this.dpr;
         if(Math.abs(next-this.dpr)>.02){this.dpr=next;this.resize();}
         this.adaptTime=0;this.frameSamples.length=0;
       }
     }
+  }
+
+  updateTrees(force=false) {
+    let dirty=force;
+    this.trees.position.z=this.treesCross.position.z=this.worldDistance;
+    this.treeSlots.forEach((tree,i)=>{
+      if(!force&&tree.s>=this.worldDistance-95)return;
+      if(!force)tree.s+=1360;
+      dirty=true;const d=this.treeDummy;
+      d.position.set(tree.x,tree.sy*.5+terrainHeight(tree.x,tree.s),-tree.s);d.scale.set(tree.sx,tree.sy,1);
+      d.rotation.set(0,tree.ry,0);d.updateMatrix();this.trees.setMatrixAt(i,d.matrix);
+      d.rotation.y=tree.ry+Math.PI/2;d.updateMatrix();this.treesCross.setMatrixAt(i,d.matrix);
+    });
+    if(dirty){this.trees.instanceMatrix.needsUpdate=true;this.treesCross.instanceMatrix.needsUpdate=true;}
   }
 
   getStats(){return {drawCalls:this.renderer.info.render.calls,triangles:this.renderer.info.render.triangles,pixelRatio:this.dpr,quality:this.mode};}

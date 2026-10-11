@@ -2,5 +2,6 @@ node_modules/
 dist/
 .local/
 artifacts/
+release/
 __pycache__/
 *.log

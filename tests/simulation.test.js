@@ -19,7 +19,10 @@ test('continuous press breaks the pedal at exactly 1612 N before stopping', () =
   assert.ok(s.speed > 0);
   assert.ok(s.failedAt>0);assert.equal(s.impacts,0);
   const speed=s.speed,distance=s.distance;advance(s,.6,()=>true);
-  assert.ok(s.lateral>0&&s.distance>distance);assert.ok(s.speed>speed);
+  assert.ok(s.lateral>0&&s.distance>distance);
+  assert.ok(s.impacts>=1,'the failed pedal must lead to a prompt guardrail collision');
+  assert.ok(s.lastImpactAt<.65,'the car must reach the guardrail in less than 650 ms');
+  assert.ok(s.speed<speed,'collision must dissipate speed');
   assert.equal(s.pressure,1612);assert.equal(s.braking,false);
 });
 test('releasing unloads the pedal and pressing brakes again', () => {

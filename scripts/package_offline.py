@@ -22,7 +22,8 @@ instructions=f'''1612 · 临界刹停 {version}
 110 km/h 起步，松开刹车会继续加速。分段制动可成功停车。
 长按到 1612 N，踏板撕裂并掉落，车辆失控、撞击护栏、反弹滑行并报废。
 Esc 暂停/继续。切换窗口、进入后台会自动暂停。声音默认关闭，可点音量图标打开。
-画质默认自动，点 HD 可循环切换高清和流畅。
+超过 100 km/h 会显示建议开始刹车。点右上角“白天 / 黄昏”切换光照；画面自动适配设备。
+撞毁后进入法庭：起诉方卑界、法官土不为、被告懂车皇。可点“重新测试”再来一轮。
 
 手机与电脑连接同一 Wi-Fi 后，可访问启动窗口显示的电脑无线网卡地址。
 也可以直接打开已发布的游戏网址：https://critical-stop-1612.shuxuanjiang0718.chatgpt.site
@@ -37,5 +38,5 @@ with zipfile.ZipFile(archive) as z:
     assert len(z.namelist())==len(payload)+1
     for name,path in payload.items():assert hashlib.sha256(z.read(name)).digest()==hashlib.sha256(path.read_bytes()).digest(),name
 report={'version':version,'archive':str(archive),'bytes':archive.stat().st_size,'sha256':hashlib.sha256(archive.read_bytes()).hexdigest(),'entries':len(payload)+1,'payload_hashes_verified':True}
-(out/'package-report-v11.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
+(out/'package-report-v12.json').write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding='utf-8')
 print(json.dumps(report,ensure_ascii=False,indent=2))

@@ -1,50 +1,74 @@
-﻿[
-    {
-        "source":  "https://polyhaven.com/a/asphalt_02",
-        "download":  "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_02/asphalt_02_diff_1k.jpg",
-        "license":  "CC0-1.0",
-        "sha256":  "1aa5ce99f58a625c71d48cfc3e68b65ca85ccb00f39e045c0a928608a0ea25ed",
-        "bytes":  731707,
-        "file":  "asphalt-color.jpg"
-    },
-    {
-        "source":  "https://polyhaven.com/a/asphalt_02",
-        "download":  "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/asphalt_02/asphalt_02_nor_gl_2k.jpg",
-        "license":  "CC0-1.0",
-        "sha256":  "ffe49db71a0fd34c1e259625df66a302a237597d6ef655307987ec4e45bc6f21",
-        "bytes":  4943950,
-        "file":  "asphalt-normal.jpg"
-    },
-    {
-        "source":  "https://polyhaven.com/a/asphalt_02",
-        "download":  "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_02/asphalt_02_rough_1k.jpg",
-        "license":  "CC0-1.0",
-        "sha256":  "70ba3edc65525eb4dc366cf010ca7ae0bd34e0251ff0225c2dad627a873d0712",
-        "bytes":  544032,
-        "file":  "asphalt-roughness.jpg"
-    },
-    {
-        "source":  "https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky",
-        "download":  "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/kloofendal_48d_partly_cloudy_puresky_2k.hdr",
-        "license":  "CC0-1.0",
-        "sha256":  "5244534e9cf5b606f2ff513aa00ddb161b0a4826ffd88a0d3bd03ac29247d198",
-        "bytes":  5451493,
-        "file":  "daylight.hdr"
-    },
-    {
-        "source":  "https://polyhaven.com/a/rocky_terrain",
-        "download":  "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rocky_terrain/rocky_terrain_diff_1k.jpg",
-        "license":  "CC0-1.0",
-        "sha256":  "429315865fd89c150272592f6d93def174c6f69804a565ff08e53627a885579b",
-        "bytes":  905179,
-        "file":  "terrain-color.jpg"
-    },
-    {
-        "source":  "https://polyhaven.com/a/rocky_terrain",
-        "download":  "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rocky_terrain/rocky_terrain_nor_gl_1k.jpg",
-        "license":  "CC0-1.0",
-        "sha256":  "a6556e1220c6e6c822e68ceeb9589719e4db8c87340199657cc705fea6ecf391",
-        "bytes":  1059194,
-        "file":  "terrain-normal.jpg"
-    }
+[
+  {
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/asphalt_02",
+    "download": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_02/asphalt_02_diff_1k.jpg",
+    "file": "asphalt-color.jpg",
+    "sha256": "1aa5ce99f58a625c71d48cfc3e68b65ca85ccb00f39e045c0a928608a0ea25ed",
+    "bytes": 731707
+  },
+  {
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/asphalt_02",
+    "download": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/2k/asphalt_02/asphalt_02_nor_gl_2k.jpg",
+    "file": "asphalt-normal.jpg",
+    "sha256": "ffe49db71a0fd34c1e259625df66a302a237597d6ef655307987ec4e45bc6f21",
+    "bytes": 4943950
+  },
+  {
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/asphalt_02",
+    "download": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/asphalt_02/asphalt_02_rough_1k.jpg",
+    "file": "asphalt-roughness.jpg",
+    "sha256": "70ba3edc65525eb4dc366cf010ca7ae0bd34e0251ff0225c2dad627a873d0712",
+    "bytes": 544032
+  },
+  {
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky",
+    "download": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/kloofendal_48d_partly_cloudy_puresky_2k.hdr",
+    "file": "daylight.hdr",
+    "sha256": "5244534e9cf5b606f2ff513aa00ddb161b0a4826ffd88a0d3bd03ac29247d198",
+    "bytes": 5451493
+  },
+  {
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/rocky_terrain",
+    "download": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rocky_terrain/rocky_terrain_diff_1k.jpg",
+    "file": "terrain-color.jpg",
+    "sha256": "429315865fd89c150272592f6d93def174c6f69804a565ff08e53627a885579b",
+    "bytes": 905179
+  },
+  {
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/rocky_terrain",
+    "download": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rocky_terrain/rocky_terrain_nor_gl_1k.jpg",
+    "file": "terrain-normal.jpg",
+    "sha256": "a6556e1220c6e6c822e68ceeb9589719e4db8c87340199657cc705fea6ecf391",
+    "bytes": 1059194
+  },
+  {
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/wood_table_001",
+    "download": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_table_001/wood_table_001_diff_1k.jpg",
+    "file": "court-wood-color.jpg",
+    "sha256": "460dd08d240f4a1f02982415048c3c5c200f385db212da18dc7e2df68bf4d0be",
+    "bytes": 215573
+  },
+  {
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/wood_table_001",
+    "download": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_table_001/wood_table_001_nor_gl_1k.jpg",
+    "file": "court-wood-normal.jpg",
+    "sha256": "9bf7ddf5721e225c20290f1772ae37f9bdfd49658f6d458259eb794e2149d3cf",
+    "bytes": 51927
+  },
+  {
+    "license": "CC0-1.0",
+    "source": "https://polyhaven.com/a/wood_table_001",
+    "download": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_table_001/wood_table_001_rough_1k.jpg",
+    "file": "court-wood-roughness.jpg",
+    "sha256": "a2ca9ae89dfe7b8e2e5e92f0aa43467845417de8a50205b5852ef0d57c7624f9",
+    "bytes": 237261
+  }
 ]

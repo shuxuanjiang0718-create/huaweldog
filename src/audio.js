@@ -72,4 +72,11 @@ export class DriveAudio {
     const osc=ctx.createOscillator(),body=ctx.createGain();osc.type='sine';osc.frequency.setValueAtTime(92,t);osc.frequency.exponentialRampToValueAtTime(27,t+.36);
     body.gain.setValueAtTime(1.1,t);body.gain.exponentialRampToValueAtTime(.001,t+.55);osc.connect(body);body.connect(this.master);osc.start(t);osc.stop(t+.6);
   }
+  gavel() {
+    if(!this.context||!this.enabled)return;
+    const ctx=this.context,t=ctx.currentTime,osc=ctx.createOscillator(),gain=ctx.createGain();
+    osc.type='triangle';osc.frequency.setValueAtTime(210,t);osc.frequency.exponentialRampToValueAtTime(72,t+.12);
+    gain.gain.setValueAtTime(.6,t);gain.gain.exponentialRampToValueAtTime(.001,t+.19);
+    osc.connect(gain);gain.connect(this.master);osc.start(t);osc.stop(t+.22);
+  }
 }

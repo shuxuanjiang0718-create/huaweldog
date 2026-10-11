@@ -7,7 +7,10 @@ $specifications = @(
     @{ Asset='asphalt_02'; Channel='Rough'; Extension='jpg'; Name='asphalt-roughness.jpg' },
     @{ Asset='kloofendal_48d_partly_cloudy_puresky'; Channel='hdri'; Extension='hdr'; Name='daylight.hdr'; Resolution='2k' },
     @{ Asset='rocky_terrain'; Channel='Diffuse'; Extension='jpg'; Name='terrain-color.jpg' },
-    @{ Asset='rocky_terrain'; Channel='nor_gl'; Extension='jpg'; Name='terrain-normal.jpg' }
+    @{ Asset='rocky_terrain'; Channel='nor_gl'; Extension='jpg'; Name='terrain-normal.jpg' },
+    @{ Asset='wood_table_001'; Channel='Diffuse'; Extension='jpg'; Name='court-wood-color.jpg' },
+    @{ Asset='wood_table_001'; Channel='nor_gl'; Extension='jpg'; Name='court-wood-normal.jpg' },
+    @{ Asset='wood_table_001'; Channel='Rough'; Extension='jpg'; Name='court-wood-roughness.jpg' }
 )
 $metadataCache = @{}
 $records = @()

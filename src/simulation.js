@@ -51,7 +51,7 @@ export function step(state, dt, held) {
     state.phase = 'broken';
     state.braking = false;
     state.failedAt = state.time;
-    state.lateralVelocity = 1.4;
+    state.lateralVelocity = 5.5;
     return;
   }
 
@@ -75,10 +75,10 @@ function stepCrash(state, dt) {
   state.time += dt;
   const before = state.speed;
   if (state.impacts === 0) {
-    const targetYaw = -.42 + Math.sin(state.crashTime * 9) * .045;
-    state.yaw += (targetYaw - state.yaw) * (1 - Math.exp(-dt * 4));
-    const lateralTarget = 3.2 + state.speed * .27;
-    state.lateralVelocity += (lateralTarget - state.lateralVelocity) * (1 - Math.exp(-dt * 3));
+    const targetYaw = -.86 + Math.sin(state.crashTime * 13) * .035;
+    state.yaw += (targetYaw - state.yaw) * (1 - Math.exp(-dt * 10));
+    const lateralTarget = Math.min(38,14 + state.speed * .35);
+    state.lateralVelocity += (lateralTarget - state.lateralVelocity) * (1 - Math.exp(-dt * 9));
     state.speed += .65 * dt;
   } else {
     // Impact removes momentum; tyres scrub sideways and yaw settles as energy dissipates.
@@ -91,8 +91,10 @@ function stepCrash(state, dt) {
   state.lateral += state.lateralVelocity * dt;
   const halfWidth = Math.abs(Math.cos(state.yaw)) * 1.12 + Math.abs(Math.sin(state.yaw)) * 2.72;
   const limit = RULES.guardrailX - halfWidth;
-  if (Math.abs(state.lateral) >= limit && state.crashTime - state.lastImpactAt > .25) {
-    const side = Math.sign(state.lateral);
+  const outside=Math.abs(state.lateral)>=limit;
+  const side=Math.sign(state.lateral);
+  if(outside)state.lateral=side*limit;
+  if (outside && state.lateralVelocity*side>0 && state.crashTime - state.lastImpactAt > .18) {
     state.lateral = side * limit;
     state.impactSide = side;
     state.impactSpeed = Math.hypot(state.speed * .55, state.lateralVelocity);
@@ -101,7 +103,7 @@ function stepCrash(state, dt) {
     state.damage = Math.min(1, state.damage + .58 + state.impactSpeed / 90);
     state.speed *= state.impacts === 1 ? .66 : .40;
     state.lateralVelocity = -side * Math.min(11, 6.8 + state.speed * .24);
-    state.yawVelocity = side * (state.impacts === 1 ? 1.55 : -.8);
+    state.yawVelocity = side * (state.impacts === 1 ? 2.35 : -1.2);
   }
   state.distance += (before + state.speed) * .5 * dt * Math.max(.28, Math.abs(Math.cos(state.yaw)));
   if (state.impacts > 0 && (state.speed <= .05 || state.crashTime > 6.8)) {

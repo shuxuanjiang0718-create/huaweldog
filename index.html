@@ -13,12 +13,13 @@
       <canvas id="world" aria-label="第三人称高速公路 3D 画面"></canvas>
       <div class="scene-shade"></div>
       <div id="impact" aria-hidden="true"></div>
+      <div id="scene-transition" aria-hidden="true"></div>
 
       <header class="topbar">
         <a class="wordmark" href="./" aria-label="1612 临界刹停首页"><span>1612<span class="wordmark-point">.</span></span><i></i><small>临界刹停</small></a>
         <div class="track-label"><span class="live-dot"></span><span id="system-status">试验路段 / 等待发车</span></div>
         <nav class="tools" aria-label="游戏设置">
-          <button id="quality" class="tool" aria-label="切换画质" title="画质：自动"><span>HD</span></button>
+          <button id="appearance" class="tool appearance-tool" aria-label="切换到黄昏" aria-pressed="false" title="切换到黄昏"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg><span id="appearance-label">白天</span></button>
           <button id="sound" class="tool" aria-label="打开声音" aria-pressed="false" title="打开声音"><svg viewBox="0 0 24 24" fill="none"><path d="M4 9h4l5-4v14l-5-4H4z"/><path id="sound-waves" d="m17 9 4 6m0-6-4 6"/></svg></button>
           <button id="fullscreen" class="tool" aria-label="全屏" title="全屏"><svg viewBox="0 0 24 24" fill="none"><path d="M8 4H4v4m12-4h4v4M4 16v4h4m12-4v4h-4"/></svg></button>
         </nav>
@@ -30,16 +31,17 @@
       </div>
 
       <section class="intro" id="intro" aria-labelledby="intro-title">
-        <div class="eyebrow"><i></i> THE ART OF STOPPING</div>
-        <h1 id="intro-title">试着，<br />停下来<span>。</span></h1>
-        <p class="intro-copy">车会越来越快。<br />踏板，未必会越来越坚强。</p>
+        <div class="eyebrow"><i></i> BRAKE TEST / 001</div>
+        <h1 id="intro-title">刹停它<span>。</span><br /><em>别上法庭。</em></h1>
+        <p class="intro-copy">你是 <strong>懂车皇</strong>，受邀测试这辆车的刹车。<br />车会持续加速。若车辆撞毁，你将被送上法庭。</p>
         <div class="rule"><span class="rule-number">1612 <small>N</small></span><p>踏板的临界点。<br />长按减速，松开卸力。</p></div>
-        <button id="start" class="start-button" disabled><span id="start-label">准备路面…</span><span class="button-arrow">↗</span></button>
+        <button id="start" class="start-button" disabled><span id="start-label">准备试验场…</span><span class="button-arrow">↗</span></button>
         <div class="intro-input"><kbd>空格</kbd> / <kbd>↓</kbd><span>或按住屏幕上的刹车踏板</span></div>
       </section>
 
       <div id="countdown" class="countdown" aria-live="polite" hidden><span>3</span><small>准备好你的分寸</small></div>
       <div id="drive-hint" class="drive-hint" hidden><i></i><span>长按减速 · 松开卸力</span></div>
+      <div id="braking-advice" class="braking-advice" role="status" hidden><span class="advice-icon">!</span><div><strong>建议开始刹车</strong><span>车速超过 100 km/h · 按住减速，松开卸力</span></div></div>
       <div id="crash-status" class="crash-status" role="status" hidden>踏板断裂 · 车辆失控</div>
 
       <div class="speedometer" aria-label="车速表">
@@ -71,9 +73,15 @@
         </div>
       </section>
 
+      <section id="court" class="court-overlay" aria-labelledby="court-title" hidden>
+        <div class="court-heading"><span class="court-case">CASE / 1612</span><h2 id="court-title">法庭</h2><div class="court-cast"><span>起诉方 <b>卑界</b></span><span>法官 <b>土不为</b></span><span>被告 <b>懂车皇</b></span></div></div>
+        <div class="court-dialogue" aria-live="polite"><div class="court-lines"><span id="court-speaker">法庭记录 / 案件移送</span><p id="court-line">车辆已报废。刹车测试，变成了庭审。</p><small id="court-detail">踏板断裂 → 撞击护栏 → 移送法庭</small></div><button id="court-restart" class="start-button"><span>重新测试</span><span class="button-arrow">↗</span></button></div>
+      </section>
+
       <div id="pause" class="pause-backdrop" hidden><div><span>已暂停</span><p>准备好后，继续这次挑战。</p><button id="resume" class="start-button"><span>继续</span><span>↗</span></button></div></div>
       <div id="error" class="error-backdrop" hidden><div><h2>画面暂时无法启动</h2><p id="error-message">请使用支持 WebGL 2 的现代浏览器。</p><button id="reload" class="start-button"><span>重新载入</span><span>↗</span></button></div></div>
-      <footer class="footnote"><span>HIGHWAY 01</span><i></i><span>关于刹停，也关于分寸。</span></footer>
+      <footer class="footnote"><span>HIGHWAY 01</span><i></i><span>虚构刹车试验 · 松开卸力，再踩一次。</span></footer>
+      <div id="desktop-sync" class="desktop-sync" role="status" hidden>新版已准备，本轮结束后自动载入。</div>
       <span id="loading-note" class="loading-note">正在准备实时 3D 场景</span>
     </main>
     <script type="module" src="/src/main.js"></script>

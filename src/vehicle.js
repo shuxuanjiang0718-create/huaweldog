@@ -194,12 +194,28 @@ export function createVehicle() {
   }
   const rearCrack = new THREE.Mesh(new THREE.PlaneGeometry(1.69,.56),crackMaterial);
   rearCrack.position.set(0,1.7,2.414);rearCrack.rotation.x=-.125;rearCrack.visible=false;group.add(rearCrack);cracks.push(rearCrack);
+  const wreckParts=new THREE.Group();wreckParts.visible=false;group.add(wreckParts);
+  const engine=new THREE.MeshStandardMaterial({color:0x171e21,metalness:.72,roughness:.63});
+  rounded(wreckParts,engine,[1.44,.30,.68],[0,1.21,-2.19],.06);
+  const hood=rounded(wreckParts,paint,[1.7,.062,.90],[0,1.48,-2.11],.045);
+  const tornBumper=rounded(wreckParts,graphite,[1.67,.21,.15],[.17,.41,-2.78],.033);
+  const looseTrim=rounded(wreckParts,chrome,[1.67,.034,.058],[.2,.26,-2.81],.01);
+  const radiator=new THREE.Group();radiator.position.set(0,1.22,-2.62);wreckParts.add(radiator);
+  for(let i=0;i<9;i++)rounded(radiator,engine,[1.11,.016,.025],[0,i*.037-.14,0],.006);
+  batchMeshes(radiator);
+  const scrapeMaterial=new THREE.MeshBasicMaterial({map:scrapeTexture(),transparent:true,depthWrite:false,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-3});
+  const scrapes=[];
+  for(const side of [-1,1]) {
+    const panel=new THREE.Mesh(new THREE.PlaneGeometry(2.40,.52,16,4),scrapeMaterial);panel.rotation.y=side*Math.PI/2;
+    panel.position.set(side*1.086,.99,-.45);panel.visible=false;group.add(panel);scrapes.push(panel);
+  }
   let damage = 0;
   const dents=[0,0];
 
   function reset() {
     if(damage)for(const {mesh,positions} of originals){mesh.geometry.attributes.position.array.set(positions);mesh.geometry.attributes.position.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();}
     for(const pane of cracks)pane.visible=false;
+    wreckParts.visible=false;for(const panel of scrapes)panel.visible=false;
     wheels.forEach((w,i)=>{w.position.copy(wheelPositions[i]);w.rotation.set(0,0,0);});
     group.position.set(0,0,0);group.rotation.set(0,0,0);damage=0;dents.fill(0);paint.color.copy(paintColor);paint.roughness=.22;
   }
@@ -215,29 +231,37 @@ export function createVehicle() {
         let xx=x,yy=y,zz=z;
         for(let d=0;d<2;d++){
           const impactSide=d===0?-1:1,edge=THREE.MathUtils.smoothstep(impactSide*x,.1,1.08);
-          const crush=edge*front*dents[d]*Math.max(.3,1-Math.max(0,y-1.2)*.7);
-          xx-=impactSide*crush*.48;yy+=crush*(Math.sin(z*21+x*17)*.055-.07);zz+=crush*.30;
+          const crush=edge*(front+.16*Math.exp(-(((z-.4)/2)**2)))*dents[d]*Math.max(.32,1-Math.max(0,y-1.2)*.65);
+          xx-=impactSide*crush*.80;
+          yy+=crush*(Math.sin(z*21+x*17)*.065-.14)+(y>1.28&&z<-.8?crush*.24:0);
+          zz+=crush*.69;
+          // Buckled metal folds stay local to the impact, instead of scaling the entire car.
+          xx+=impactSide*crush*Math.sin(z*13+y*9)*.062;
         }
         p.setXYZ(i,xx,yy,zz);
       }
       p.needsUpdate=true;mesh.geometry.computeVertexNormals();mesh.geometry.computeBoundingSphere();
     }
     for(const pane of cracks)pane.visible=true;
-    paint.color.copy(paintColor).multiplyScalar(.85);paint.roughness=.34;
-    wheels.forEach((w,i)=>{if(wheelPositions[i].x*side>0){w.position.x=wheelPositions[i].x-side*.10;w.rotation.y=side*.24;w.position.y=.40;}});
+    wreckParts.visible=true;hood.rotation.set(-.22,side*.08,side*.17);hood.position.set(-side*.14,1.51,-1.94);
+    tornBumper.rotation.set(.28,side*.19,side*.20);looseTrim.rotation.set(.1,side*.13,side*.26);
+    scrapes[side>0?1:0].visible=true;
+    paint.color.copy(paintColor).multiplyScalar(.79);paint.roughness=.37;
+    wheels.forEach((w,i)=>{if(wheelPositions[i].x*side>0){w.position.x=wheelPositions[i].x-side*(wheelPositions[i].z<0?.23:.12);w.rotation.y=side*(wheelPositions[i].z<0?.72:.31);w.rotation.z=side*.24;w.position.y=.36;w.position.z=wheelPositions[i].z+(wheelPositions[i].z<0?.23:0);}});
   }
   return {
     group, wheels, light, brakeGlow, reset, dent,
     update(speed, braking, time, phase, dt, crash = null) {
-      wheels.forEach(w => { w.rotation.x -= speed * dt / .45; });
+      wheels.forEach((w,i) => { w.rotation.x -= speed * dt / .45 * (damage&&wheelPositions[i].z<0?.36:1); });
       const rolling = phase === 'running' || phase === 'countdown' || phase === 'broken';
       const bounce = rolling ? Math.sin(time*31)*.007*Math.min(speed/30,1.3) : 0;
       const hitAge=crash?crash.crashTime-crash.lastImpactAt:100;
       const kick=Math.max(0,1-hitAge/.55);
-      const pitchTarget = braking ? -.045 : damage ? -.038-kick*.055 : rolling ? .009 : 0;
+      const pitchTarget = braking ? -.045 : damage ? -.071-kick*.11 : rolling ? .009 : 0;
       group.rotation.x = THREE.MathUtils.damp(group.rotation.x,pitchTarget,12,dt);
       group.rotation.z = damage ? (crash?.impactSide??1)*(.025+Math.sin(hitAge*24)*kick*.075) : rolling ? Math.sin(time*2.8)*.0018 : 0;
-      group.position.y = bounce-(damage?.035:0)+kick*.025*Math.sin(hitAge*28);
+      group.position.y = bounce-(damage?.065:0)+kick*.055*Math.sin(hitAge*28);
+      if(damage){tornBumper.rotation.x=.28+Math.sin(time*13)*.055*Math.min(speed/9,1);looseTrim.rotation.z=(crash?.impactSide??1)*.26+Math.sin(time*18)*.04;}
       light.emissiveIntensity = damage ? Math.sin(time*9)>0?2.6:.2 : braking || phase === 'stopped' ? 4 : 1.15;
       brakeGlow.intensity = braking ? 7 : 0;
     },
@@ -254,5 +278,16 @@ function crackTexture() {
     ctx.strokeStyle=`rgba(223,237,239,${.3+rand()*.5})`;ctx.lineWidth=.6+rand();ctx.stroke();
   }
   for(let r=12;r<85;r+=13){ctx.beginPath();for(let i=0;i<=23;i++){const a=i/23*Math.PI*2,rr=r+(rand()-.5)*14;const x=ox+Math.cos(a)*rr,y=oy+Math.sin(a)*rr;i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.strokeStyle='#dae7e54f';ctx.lineWidth=.65;ctx.stroke();}
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;
+}
+
+function scrapeTexture() {
+  const c=document.createElement('canvas');c.width=1024;c.height=256;const ctx=c.getContext('2d');
+  let seed=29;const random=()=>{seed=(Math.imul(seed,1664525)+1013904223)|0;return(seed>>>0)/4294967296;};
+  for(let i=0;i<150;i++) {
+    const x=random()*850,y=58+random()*148;
+    ctx.strokeStyle=i%3?'#bdc2bc9c':'#101916ae';ctx.lineWidth=.4+random()*2;
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+30+random()*240,y+(random()-.5)*14);ctx.stroke();
+  }
   const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;
 }

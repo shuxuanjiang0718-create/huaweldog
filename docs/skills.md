@@ -1,5 +1,13 @@
 # 本次技能选择与审查
 
+1.2 更新（2026-10-11）：使用 find-skills-collab 实际检索 `electron`。技能注册表返回泛化列表，CLI 随后出现 Windows Node 退出错误，没有找到值得新增的 Electron 专用技能；回退检查官方技能仓库及 Electron 官方文档，没有安装新第三方技能。已有能力足以完成本次工作。
+
+本次实际使用 performance-optimization（先测 CPU、WebGL 提交和帧间隔，再改善地形流送）、game-architect（共享游戏逻辑、场景流程和桌面发行）、game-ui-ux（手机控制、压力计和菜单布局）、game-playtest（真实按键、触摸、事故、法庭及截图检查），以及既有 Sites 源码同步与发布工作流。新增项目本地工具为 Electron 43.7.9 和 electron-builder 26.15.3；游戏继续使用 Three.js 0.186.1，没有迁移到另一套引擎。
+
+桌面窗口使用隔离上下文与沙箱，游戏端只暴露版本通知和应用更新两项操作；离线包包含资源，联动更新只监听明确的本机项目。依据 [Electron BrowserWindow 文档](https://www.electronjs.org/docs/latest/api/browser-window) 配置隐藏测试窗口与窗口生命周期，使用 [electron-builder 配置文档](https://www.electron.build/configuration/) 生成 Windows x64 便携包。
+
+以下保留初版与 1.1 版技能记录。
+
 检查日期：2026-10-10。
 
 使用 `find-skills-collab`，检索词为 `threejs postprocessing`。注册表找到了直接匹配的 `CloudAI-X/threejs-skills@threejs-postprocessing`；没有执行 GitHub 搜索回退，随后通过 GitHub API 检查候选仓库与完整技能目录。
